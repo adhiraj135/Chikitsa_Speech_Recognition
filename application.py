@@ -5,6 +5,7 @@ import joblib
 import whisper
 import time
 from flask_cors import CORS
+from Bio_Epidemiology_NER.bio_recognizer import ner_prediction
 
 application=Flask(__name__)
 CORS(application)
@@ -44,7 +45,12 @@ def save_audio():
         text = result.text
         detected_text = text + ""
 
-        return jsonify({'message': 'Audio saved successfully','text':detected_text})
+        ner=ner_prediction(corpus=detected_text, compute='cpu')
+        medicines = []
+        for i in ner["value"][ner["entity_group"] == "Medication"].ravel():
+            medicines.append(i)
+
+        return jsonify({'message': 'Audio saved successfully','text':medicines})
 
     except Exception as e:
         raise e
@@ -76,7 +82,11 @@ def get_transcription():
         result = whisper.decode(model, mel, **options)
         text = result.text
         detected_text = text + ""
-        return jsonify({'message': 'Audio transcribed successfully', 'text': detected_text})
+        ner = ner_prediction(corpus=detected_text, compute='cpu')
+        medicines = []
+        for i in ner["value"][ner["entity_group"] == "Medication"].ravel():
+            medicines.append(i)
+        return jsonify({'message': detected_text, 'text': medicines })
     except Exception as e:
         return jsonify({'error': 'Error transcribing audio', 'message': str(e)})
 
